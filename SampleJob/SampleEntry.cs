@@ -2,11 +2,12 @@
 
 namespace SampleACR.SampleJob;
 
-public class SampleEntry : IRotationEntry
+public class SampleEntry : IRotationEntry, ISettingsProvider<SampleSettings>
 {
     public Rotation? Build(string settingFolder)
     {
-        throw new NotImplementedException();
+        
+        return new Rotation();
     }
 
     public IRotationUI? GetRotationUI()
@@ -37,4 +38,5 @@ public class SampleEntry : IRotationEntry
     public string AuthorName { get; } = "Sample";
     public bool UseCustomUi { get; } = false;
     public IEnumerable<Jobs> TargetJobs { get; } = [Jobs.None];
+    public SampleSettings Settings { get; set; } = new SampleSettings();
 }
