@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="HiAuRo.Sdk" Version="0.1.31" />
+      <PackageReference Include="HiAuRo.Sdk" Version="0.1.41" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="Helper\HiAuRo.Helper\HiAuRo.Helper.csproj">
