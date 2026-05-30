@@ -298,7 +298,7 @@ public class 耀星 : ISlotResolver
         if (!BLMHelper.火状态)                           return (int)CheckResult.状态不符;
         if (BLMHelper.耀星层数 != 6)                     return (int)CheckResult.资源不足;
         if (Data.Me.IsMoving && !BLMHelper.可瞬发)       return (int)CheckResult.移动中;
-        // 最后返回技能 ID 作为正数值（表示可用，ID 越大默认优先级越高）
+        // 最后返回技能 ID 作为正数值（表示可用）
         return (int)BLMHelper.耀星;
     }
 
