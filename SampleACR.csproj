@@ -7,9 +7,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="HiAuRo.Sdk" Version="0.1.41">
+      <PackageReference Include="HiAuRo.Sdk" Version="0.2.11">
             <ExcludeAssets>runtime</ExcludeAssets>
         </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
+        <Compile Remove="Helper\**" />
+        <None Remove="Helper\**" />
+        <Content Remove="Helper\**" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="Helper\HiAuRo.Helper\HiAuRo.Helper.csproj">

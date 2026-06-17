@@ -24,7 +24,13 @@ public class SampleEventControl:IRotationEventHandler
         //作为一些读条职业判断是否某个技能读条完毕来辅助实现高级循环。
     }
 
-    public void BeforeSpell(Slot slot, Spell spell)
+    public Slot? BeforeSpell(Slot slot)
+    {
+        //一般是在开始执行当前 Slot 之前插入一个更高优先级 Slot；返回 null 表示不插入
+        return null;
+    }
+
+    public void OnBeforeSpellCast(Slot slot, Spell spell)
     {
         //一般是在开始下一次释放技能之前插入技能
     }
