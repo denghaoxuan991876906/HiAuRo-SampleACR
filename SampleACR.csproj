@@ -12,6 +12,11 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Remove="Helper\**" />
+        <None Remove="Helper\**" />
+        <Content Remove="Helper\**" />
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="Helper\HiAuRo.Helper\HiAuRo.Helper.csproj">
             <Private>False</Private>
         </ProjectReference>
