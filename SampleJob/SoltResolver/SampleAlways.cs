@@ -6,7 +6,7 @@ public class SampleAlways:ISlotResolver
 {
     public int Check()
     {
-        _ = HelperRuntime.IsInCombat();
+        _ = GameHelper.IsInCombat();
         if (Data.Target.Current.DistanceToPlayer() < 10)
             return 1;
         return -1;
