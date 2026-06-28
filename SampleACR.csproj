@@ -8,40 +8,11 @@
         <Version>0.1.0</Version>
     </PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="Dalamud">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\Dalamud.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="Dalamud.Bindings.ImGui">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\Dalamud.Bindings.ImGui.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="FFXIVClientStructs">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\FFXIVClientStructs.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="HiAuRo">
-      <HintPath>..\HiAuRo\HiAuRo\bin\x64\Debug\HiAuRo.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Lumina">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\Lumina.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="Lumina.Excel">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\Lumina.Excel.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>$(APPDATA)\XIVLauncherCN\addon\Hooks\dev\Newtonsoft.Json.dll</HintPath>
-	  <Private>False</Private>
-    </Reference>
-    <Reference Include="OmenTools">
-      <HintPath>..\HiAuRo\HiAuRo\bin\x64\Debug\OmenTools.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="HiAuRo.Sdk" Version="0.2.29">
+            <ExcludeAssets>runtime</ExcludeAssets>
+        </PackageReference>
+    </ItemGroup>
     <ItemGroup>
         <Compile Remove="Helper\**" />
         <None Remove="Helper\**" />
