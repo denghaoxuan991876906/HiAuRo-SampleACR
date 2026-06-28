@@ -3,7 +3,7 @@
   "PublisherName": "Sample",
   "AcrId": "sample",
   "DisplayName": "Sample ACR",
-  "Version": "0.1.1",
+  "Version": "0.1.2",
   "EntryDll": "SampleACR.dll",
   "SourceUrl": ""
 }
