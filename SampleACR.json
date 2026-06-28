@@ -1,0 +1,9 @@
+{
+  "PublisherId": "sample",
+  "PublisherName": "Sample",
+  "AcrId": "sample",
+  "DisplayName": "Sample ACR",
+  "Version": "0.1.0",
+  "EntryDll": "SampleACR.dll",
+  "SourceUrl": ""
+}

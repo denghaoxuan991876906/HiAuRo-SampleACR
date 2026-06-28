@@ -1,0 +1,166 @@
+name: Build & Release ACR
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      ACR_NAME: SampleACR
+      OUTPUT_DIR: out
+      PUBLISHER_ID: sample
+      PUBLISHER_NAME: Sample
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Bump version on default branch
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        shell: pwsh
+        run: |
+          $csproj = "SampleACR.csproj"
+          $json = "SampleACR.json"
+
+          $m = Select-String -Path $csproj -Pattern '<Version>(.*?)</Version>'
+          $cur = $m.Matches[0].Groups[1].Value
+          $p = $cur.Split('.')
+          $new = "$([int]$p[0]).$([int]$p[1]).$([int]$p[2] + 1)"
+
+          Write-Host "Bump version: $cur -> $new"
+          (Get-Content $csproj) -replace "<Version>$cur</Version>", "<Version>$new</Version>" | Set-Content $csproj
+
+          $jsonObj = Get-Content $json -Raw | ConvertFrom-Json
+          $jsonObj.Version = $new
+          $jsonObj | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $json
+
+          "NEW_VERSION=$new" >> $env:GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore SampleACR.sln
+
+      - name: Build
+        run: dotnet build SampleACR.sln -c Release --no-restore
+
+      - name: Commit and tag bumped version
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SampleACR.csproj SampleACR.json
+          git commit -m "chore: bump version to v$env:NEW_VERSION [skip ci]"
+          git tag "v$env:NEW_VERSION"
+          git push origin HEAD
+          git push origin "v$env:NEW_VERSION"
+
+      - name: Resolve release version
+        shell: pwsh
+        run: |
+          $version = if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $env:GITHUB_REF_NAME.TrimStart("v")
+          } else {
+            $env:NEW_VERSION
+          }
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Version resolution failed"
+          }
+          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Collect ACR payload
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:OUTPUT_DIR\$env:ACR_NAME" | Out-Null
+          Copy-Item "bin\Release\net10.0-windows\$env:ACR_NAME.dll" "$env:OUTPUT_DIR\$env:ACR_NAME\"
+          Copy-Item "bin\Release\net10.0-windows\$env:ACR_NAME.json" "$env:OUTPUT_DIR\$env:ACR_NAME\"
+          if (Test-Path "bin\Release\net10.0-windows\$env:ACR_NAME.deps.json") {
+            Copy-Item "bin\Release\net10.0-windows\$env:ACR_NAME.deps.json" "$env:OUTPUT_DIR\$env:ACR_NAME\"
+          }
+          if (Test-Path "bin\Release\net10.0-windows\$env:ACR_NAME.pdb") {
+            Copy-Item "bin\Release\net10.0-windows\$env:ACR_NAME.pdb" "$env:OUTPUT_DIR\$env:ACR_NAME\"
+          }
+
+      - name: Pack zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "$env:OUTPUT_DIR\$env:ACR_NAME\*" -DestinationPath "$env:OUTPUT_DIR\$env:ACR_NAME.zip" -Force
+
+      - name: Generate publisher and manifest
+        shell: pwsh
+        run: |
+          $repo = "${{ github.repository }}"
+          $tagName = "v$env:RELEASE_VERSION"
+          $base = "https://github.com/$repo/releases/download/$tagName"
+          $manifest = @{
+            schemaVersion = 1
+            acrId = $env:ACR_NAME
+            name = $env:ACR_NAME
+            author = $env:PUBLISHER_NAME
+            description = "$env:ACR_NAME"
+            targets = @()
+            latestVersion = $env:RELEASE_VERSION
+            minHiAuRoVersion = ""
+            maxHiAuRoVersion = ""
+            packageUrl = "$base/$env:ACR_NAME.zip"
+            sha256 = (Get-FileHash "$env:OUTPUT_DIR\$env:ACR_NAME.zip" -Algorithm SHA256).Hash.ToLower()
+            publishedAt = [DateTimeOffset]::UtcNow.ToString("o")
+            changelog = ""
+            entryDll = "$env:ACR_NAME.dll"
+          }
+          $manifestPath = "$env:OUTPUT_DIR\$env:ACR_NAME.manifest.json"
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $manifestPath
+
+          $publisher = @{
+            schemaVersion = 1
+            publisherId = $env:PUBLISHER_ID
+            publisherName = $env:PUBLISHER_NAME
+            homepage = "https://github.com/$repo"
+            contact = ""
+            acrs = @(
+              @{
+                acrId = $env:ACR_NAME
+                name = $env:ACR_NAME
+                manifestUrl = "$base/$env:ACR_NAME.manifest.json"
+              }
+            )
+          }
+          $publisher | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "$env:OUTPUT_DIR\publisher.json"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ACR_NAME }}
+          path: |
+            ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}
+            ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.zip
+            ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.manifest.json
+            ${{ env.OUTPUT_DIR }}/publisher.json
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.zip
+            ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.manifest.json
+            ${{ env.OUTPUT_DIR }}/publisher.json
+          generate_release_notes: true

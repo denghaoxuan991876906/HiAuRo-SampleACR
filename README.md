@@ -76,11 +76,22 @@ dotnet build SampleACR.sln -c Debug
 cmd.exe /c "dotnet build D:\DalamudPlugins\HiAuRo-SampleACR\SampleACR.sln -c Debug"
 ```
 
-构建成功后，DLL 输出在 `SampleJob/bin/Debug/net10.0-windows/`。
+构建成功后，关键输出文件在 `bin/Debug/net10.0-windows/`：
+
+- `SampleACR.dll`
+- `SampleACR.json`
 
 ### 3. 部署到 HiAuRo
 
-将编译好的 DLL 放到 HiAuRo 插件配置目录的 `ACR/<你的作者名>/` 下。HiAuRo 启动时会自动发现并加载。
+推荐部署结构：
+
+```text
+HiAuRo 插件配置目录/ACR/SampleACR/
+  SampleACR.dll
+  SampleACR.json
+```
+
+HiAuRo 会按“目录名 = DLL 名 = JSON 名”的规则自动发现并加载。旧作者目录模式仍兼容，但模板项目默认按这个新模式输出。
 
 ### 4. 更新 SDK 版本
 
@@ -499,11 +510,102 @@ public void RegisterControls(IAcrUiBuilder builder)
 
 ```xml
 <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-  <OutputPath>$(AppData)\XIVLauncherCN\pluginConfigs\HiAuRo\ACR\嗨呀\</OutputPath>
+  <OutputPath>$(AppData)\XIVLauncherCN\pluginConfigs\HiAuRo\ACR\SampleACR\</OutputPath>
 </PropertyGroup>
 ```
 
 改代码 → F6 构建 → 在游戏中切一下职业 → 新代码生效。开发循环缩短到秒级。
+
+### 技巧 12：可直接复制的 GitHub Actions Workflow
+
+模板仓库内置了：
+
+` .github/workflows/build-acr.yml `
+
+这个 workflow 会在 Windows Runner 上：
+
+1. 还原并构建 `SampleACR.sln`
+2. 收集同名输出：
+   - `SampleACR.dll`
+   - `SampleACR.json`
+   - 可选 `SampleACR.deps.json`
+   - 可选 `SampleACR.pdb`
+3. 打包 `SampleACR.zip`
+4. 自动把 `SampleACR.csproj` 和 `SampleACR.json` 的版本改成新版本（默认分支 push 时）
+5. 提交版本变更并打 `v*` tag（默认分支 push 时）
+6. 生成可直接给 HiAuRo 使用的发布文件：
+   - `SampleACR.manifest.json`
+   - `publisher.json`
+7. 上传为 artifact
+8. 当 workflow 跑在 `v*` tag 上时，自动发布到当前 GitHub Release
+
+如果你复制这个模板仓库去做自己的 ACR，通常只要改 1 处：
+
+```yaml
+env:
+  ACR_NAME: SampleACR
+```
+
+把它改成你的目录名 / DLL 名 / JSON 名即可，例如：
+
+```yaml
+env:
+  ACR_NAME: MyBlackMageAcr
+```
+
+通常你还要顺手改另外 2 个值：
+
+```yaml
+env:
+  PUBLISHER_ID: your-name
+  PUBLISHER_NAME: Your Name
+```
+
+这样 workflow 产物会自动整理成：
+
+```text
+out/MyBlackMageAcr/
+  MyBlackMageAcr.dll
+  MyBlackMageAcr.json
+```
+
+以及发布用文件：
+
+```text
+out/
+  MyBlackMageAcr.zip
+  MyBlackMageAcr.manifest.json
+  publisher.json
+```
+
+作者可以直接把这个目录发布给用户，用户再放进：
+
+```text
+HiAuRo 插件配置目录/ACR/MyBlackMageAcr/
+```
+
+如果作者沿用这套模板，在默认分支 push 后，workflow 会自动：
+
+- bump `SampleACR.csproj` 中的 `<Version>`
+- bump `SampleACR.json` 中的 `Version`
+- commit 回仓库
+- 打出 `vX.Y.Z` tag
+
+之后 tag 对应的 workflow 会自动：
+- 构建 ACR
+- 打 zip
+- 生成带当前版本的 manifest
+- 生成 `publisher.json`
+- 上传到当前仓库 release
+
+如果作者想手动触发 release，也可以自己打 tag：
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+其他 HiAuRo 用户只需要拿到这个 `publisher.json` 地址，就能在源管理页添加作者源。
 
 ### 技巧 11：职业 Helper 惯例
 
