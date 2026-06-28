@@ -8,7 +8,7 @@
     {
       "acrId": "SampleACR",
       "name": "SampleACR",
-      "manifestUrl": "https://raw.githubusercontent.com/denghaoxuan991876906/HiAuRo-SampleACR/main/SampleACR.manifest.json"
+      "manifestUrl": "https://raw.githubusercontent.com/denghaoxuan991876906/HiAuRo-SampleACR/master/SampleACR.manifest.json"
     }
   ]
 }

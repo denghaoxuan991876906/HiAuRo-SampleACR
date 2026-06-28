@@ -588,7 +588,7 @@ publisher.json
 这样用户可以直接使用固定地址添加作者源，例如：
 
 ```text
-https://raw.githubusercontent.com/<owner>/<repo>/main/publisher.json
+https://raw.githubusercontent.com/<owner>/<repo>/master/publisher.json
 ```
 
 作者可以直接把这个目录发布给用户，用户再放进：
