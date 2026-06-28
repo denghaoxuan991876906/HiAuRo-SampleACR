@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "acrId": "SampleACR",
+  "name": "SampleACR",
+  "author": "Sample",
+  "description": "SampleACR",
+  "targets": [],
+  "latestVersion": "0.1.0",
+  "minHiAuRoVersion": "",
+  "maxHiAuRoVersion": "",
+  "packageUrl": "",
+  "sha256": "",
+  "publishedAt": "",
+  "changelog": "",
+  "entryDll": "SampleACR.dll"
+}

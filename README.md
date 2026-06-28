@@ -578,6 +578,19 @@ out/
   publisher.json
 ```
 
+仓库根目录也会常驻这两个文件：
+
+```text
+SampleACR.manifest.json
+publisher.json
+```
+
+这样用户可以直接使用固定地址添加作者源，例如：
+
+```text
+https://raw.githubusercontent.com/<owner>/<repo>/main/publisher.json
+```
+
 作者可以直接把这个目录发布给用户，用户再放进：
 
 ```text
@@ -588,6 +601,8 @@ HiAuRo 插件配置目录/ACR/MyBlackMageAcr/
 
 - bump `SampleACR.csproj` 中的 `<Version>`
 - bump `SampleACR.json` 中的 `Version`
+- bump `SampleACR.manifest.json` 中的 `latestVersion/packageUrl`
+- bump 仓库根目录 `publisher.json`
 - commit 回仓库
 - 打出 `vX.Y.Z` tag
 

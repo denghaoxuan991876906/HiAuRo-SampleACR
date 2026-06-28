@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "publisherId": "sample",
+  "publisherName": "Sample",
+  "homepage": "https://github.com/denghaoxuan991876906/HiAuRo-SampleACR",
+  "contact": "",
+  "acrs": [
+    {
+      "acrId": "SampleACR",
+      "name": "SampleACR",
+      "manifestUrl": "https://raw.githubusercontent.com/denghaoxuan991876906/HiAuRo-SampleACR/main/SampleACR.manifest.json"
+    }
+  ]
+}

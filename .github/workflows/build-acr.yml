@@ -40,6 +40,8 @@ jobs:
         run: |
           $csproj = "SampleACR.csproj"
           $json = "SampleACR.json"
+          $manifest = "SampleACR.manifest.json"
+          $publisher = "publisher.json"
 
           $m = Select-String -Path $csproj -Pattern '<Version>(.*?)</Version>'
           $cur = $m.Matches[0].Groups[1].Value
@@ -52,6 +54,22 @@ jobs:
           $jsonObj = Get-Content $json -Raw | ConvertFrom-Json
           $jsonObj.Version = $new
           $jsonObj | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $json
+
+          $repo = "${{ github.repository }}"
+          $manifestObj = Get-Content $manifest -Raw | ConvertFrom-Json
+          $manifestObj.latestVersion = $new
+          $manifestObj.packageUrl = "https://github.com/$repo/releases/download/v$new/$env:ACR_NAME.zip"
+          $manifestObj.entryDll = "$env:ACR_NAME.dll"
+          $manifestObj | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $manifest
+
+          $publisherObj = Get-Content $publisher -Raw | ConvertFrom-Json
+          $publisherObj.publisherId = $env:PUBLISHER_ID
+          $publisherObj.publisherName = $env:PUBLISHER_NAME
+          $publisherObj.homepage = "https://github.com/$repo"
+          $publisherObj.acrs[0].acrId = $env:ACR_NAME
+          $publisherObj.acrs[0].name = $env:ACR_NAME
+          $publisherObj.acrs[0].manifestUrl = "https://raw.githubusercontent.com/$repo/main/$env:ACR_NAME.manifest.json"
+          $publisherObj | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $publisher
 
           "NEW_VERSION=$new" >> $env:GITHUB_ENV
 
@@ -67,7 +85,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add SampleACR.csproj SampleACR.json
+          git add SampleACR.csproj SampleACR.json SampleACR.manifest.json publisher.json
           git commit -m "chore: bump version to v$env:NEW_VERSION [skip ci]"
           git tag "v$env:NEW_VERSION"
           git push origin HEAD
@@ -104,45 +122,27 @@ jobs:
         run: |
           Compress-Archive -Path "$env:OUTPUT_DIR\$env:ACR_NAME\*" -DestinationPath "$env:OUTPUT_DIR\$env:ACR_NAME.zip" -Force
 
-      - name: Generate publisher and manifest
+      - name: Generate release copies of publisher and manifest
         shell: pwsh
         run: |
           $repo = "${{ github.repository }}"
           $tagName = "v$env:RELEASE_VERSION"
           $base = "https://github.com/$repo/releases/download/$tagName"
-          $manifest = @{
-            schemaVersion = 1
-            acrId = $env:ACR_NAME
-            name = $env:ACR_NAME
-            author = $env:PUBLISHER_NAME
-            description = "$env:ACR_NAME"
-            targets = @()
-            latestVersion = $env:RELEASE_VERSION
-            minHiAuRoVersion = ""
-            maxHiAuRoVersion = ""
-            packageUrl = "$base/$env:ACR_NAME.zip"
-            sha256 = (Get-FileHash "$env:OUTPUT_DIR\$env:ACR_NAME.zip" -Algorithm SHA256).Hash.ToLower()
-            publishedAt = [DateTimeOffset]::UtcNow.ToString("o")
-            changelog = ""
-            entryDll = "$env:ACR_NAME.dll"
-          }
+          $manifest = Get-Content "SampleACR.manifest.json" -Raw | ConvertFrom-Json
+          $manifest.latestVersion = $env:RELEASE_VERSION
+          $manifest.packageUrl = "$base/$env:ACR_NAME.zip"
+          $manifest.sha256 = (Get-FileHash "$env:OUTPUT_DIR\$env:ACR_NAME.zip" -Algorithm SHA256).Hash.ToLower()
+          $manifest.publishedAt = [DateTimeOffset]::UtcNow.ToString("o")
           $manifestPath = "$env:OUTPUT_DIR\$env:ACR_NAME.manifest.json"
           $manifest | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $manifestPath
 
-          $publisher = @{
-            schemaVersion = 1
-            publisherId = $env:PUBLISHER_ID
-            publisherName = $env:PUBLISHER_NAME
-            homepage = "https://github.com/$repo"
-            contact = ""
-            acrs = @(
-              @{
-                acrId = $env:ACR_NAME
-                name = $env:ACR_NAME
-                manifestUrl = "$base/$env:ACR_NAME.manifest.json"
-              }
-            )
-          }
+          $publisher = Get-Content "publisher.json" -Raw | ConvertFrom-Json
+          $publisher.publisherId = $env:PUBLISHER_ID
+          $publisher.publisherName = $env:PUBLISHER_NAME
+          $publisher.homepage = "https://github.com/$repo"
+          $publisher.acrs[0].acrId = $env:ACR_NAME
+          $publisher.acrs[0].name = $env:ACR_NAME
+          $publisher.acrs[0].manifestUrl = "$base/$env:ACR_NAME.manifest.json"
           $publisher | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "$env:OUTPUT_DIR\publisher.json"
 
       - name: Upload artifact
