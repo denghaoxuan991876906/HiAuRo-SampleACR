@@ -24,13 +24,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
@@ -68,7 +68,7 @@ jobs:
           $publisherObj.homepage = "https://github.com/$repo"
           $publisherObj.acrs[0].acrId = $env:ACR_NAME
           $publisherObj.acrs[0].name = $env:ACR_NAME
-          $publisherObj.acrs[0].manifestUrl = "https://raw.githubusercontent.com/$repo/master/$env:ACR_NAME.manifest.json"
+          $publisherObj.acrs[0].manifestUrl = "https://raw.githubusercontent.com/$repo/${{ github.ref_name }}/$env:ACR_NAME.manifest.json"
           $publisherObj | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 $publisher
 
           "NEW_VERSION=$new" >> $env:GITHUB_ENV
@@ -78,18 +78,6 @@ jobs:
 
       - name: Build
         run: dotnet build SampleACR.sln -c Release --no-restore
-
-      - name: Commit and tag bumped version
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-        shell: pwsh
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add SampleACR.csproj SampleACR.json SampleACR.manifest.json publisher.json
-          git commit -m "chore: bump version to v$env:NEW_VERSION [skip ci]"
-          git tag "v$env:NEW_VERSION"
-          git push origin HEAD
-          git push origin "v$env:NEW_VERSION"
 
       - name: Resolve release version
         shell: pwsh
@@ -103,6 +91,7 @@ jobs:
             throw "Version resolution failed"
           }
           "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_TAG=v$version" >> $env:GITHUB_ENV
 
       - name: Collect ACR payload
         shell: pwsh
@@ -126,8 +115,7 @@ jobs:
         shell: pwsh
         run: |
           $repo = "${{ github.repository }}"
-          $tagName = "v$env:RELEASE_VERSION"
-          $base = "https://github.com/$repo/releases/download/$tagName"
+          $base = "https://github.com/$repo/releases/download/$env:RELEASE_TAG"
           $manifest = Get-Content "SampleACR.manifest.json" -Raw | ConvertFrom-Json
           $manifest.latestVersion = $env:RELEASE_VERSION
           $manifest.packageUrl = "$base/$env:ACR_NAME.zip"
@@ -145,8 +133,20 @@ jobs:
           $publisher.acrs[0].manifestUrl = "$base/$env:ACR_NAME.manifest.json"
           $publisher | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 "$env:OUTPUT_DIR\publisher.json"
 
+      - name: Commit and tag bumped version
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add SampleACR.csproj SampleACR.json SampleACR.manifest.json publisher.json
+          git commit -m "chore: bump version to $env:RELEASE_TAG [skip ci]"
+          git tag "$env:RELEASE_TAG"
+          git push origin HEAD:${{ github.ref_name }}
+          git push origin "$env:RELEASE_TAG"
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ACR_NAME }}
           path: |
@@ -156,9 +156,9 @@ jobs:
             ${{ env.OUTPUT_DIR }}/publisher.json
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.zip
             ${{ env.OUTPUT_DIR }}/${{ env.ACR_NAME }}.manifest.json
